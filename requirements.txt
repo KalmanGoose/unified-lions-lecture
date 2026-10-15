@@ -1,0 +1,15 @@
+# 講座課離線語音轉錄與重點萃取系統 - Python 套件依賴清單
+# 支援 Python 3.9+
+
+# 1. 離線語音辨識核心 (Faster-Whisper 模型引擎)
+faster-whisper>=1.0.0
+
+# 2. 本地端 Ollama API 呼叫 (無需外網，呼叫 localhost:11434)
+requests>=2.28.0
+
+# 3. 本地 WebSocket 即時語音串流推播伺服器
+websockets>=11.0.0
+
+# 4. (選配) 麥克風音訊捕捉套件 (若需要直接由 Python 錄音時使用)
+sounddevice>=0.4.6
+numpy>=1.22.0

@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>講座重點戰情室 - 離線語音錄音轉錄與拍照筆記系統</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #26334d;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --highlight-yellow: #facc15;
+      --highlight-bg: rgba(250, 204, 21, 0.25);
+      --border-color: #334155;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --tag-conclusion: #ec4899;
+      --tag-case: #3b82f6;
+      --tag-chart: #10b981;
+      --tag-quote: #eab308;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      background: #0369a1;
+      color: #e0f2fe;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .offline-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .offline-indicator.disconnected {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      color: #ffffff;
+      background: #334155;
+    }
+
+    .btn:hover {
+      background: #475569;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+    .btn-primary:hover { background: #0369a1; }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+    .btn-danger:hover { background: #b91c1c; }
+
+    .btn-success { background: #059669; }
+    .btn-success:hover { background: #047857; }
+
+    .btn-warning { background: #d97706; }
+    .btn-warning:hover { background: #b45309; }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    /* Layout */
+    .app-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+
+    /* Top Banner: Lecture Meta & Live Recording Center */
+    .lecture-header-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .lecture-meta-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .meta-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-input-group label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .meta-input-group input {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      min-width: 180px;
+    }
+
+    .meta-input-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* Dedicated Classroom Audio Recording Center */
+    .audio-recording-center {
+      background: linear-gradient(145deg, #182234, #0f172a);
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 380px;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+    }
+
+    .recording-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rec-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .rec-dot.pulsing {
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .rec-timer {
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--highlight-yellow);
+    }
+
+    /* Live Audio Waveform / VU Meter */
+    .vu-meter-container {
+      width: 100%;
+      height: 12px;
+      background: #090d16;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+      position: relative;
+    }
+
+    #vu-meter-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981 0%, #38bdf8 65%, #facc15 85%, #ef4444 100%);
+      transition: width 0.08s ease-out;
+    }
+
+    .recording-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Audio Playback / Export Drawer */
+    #recorded-audio-playback-box {
+      display: none;
+      background: #0b1120;
+      border-radius: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #recorded-audio-element {
+      width: 100%;
+      height: 32px;
+    }
+
+    /* Grid Layout: Left Panel vs Right Panel */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1080px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Capture Panel */
+    .capture-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 80px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    /* Camera View */
+    .camera-container {
+      background: #090d16;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px dashed var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+    }
+
+    #webcam-video {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: none;
+    }
+
+    #camera-preview-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .camera-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .upload-zone {
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      transition: background 0.2s;
+    }
+
+    .upload-zone:hover {
+      background: rgba(15, 23, 42, 0.8);
+      border-color: var(--accent);
+    }
+
+    /* Fast Tag Selectors */
+    .tag-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-chip {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .tag-chip.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+      font-weight: 600;
+    }
+
+    /* Note Input */
+    .note-textarea {
+      width: 100%;
+      height: 80px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 10px;
+      font-size: 13px;
+      resize: vertical;
+    }
+
+    .note-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Right Dashboard Panel */
+    .dashboard-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .war-room-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .timeline-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stats-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-val {
+      color: var(--accent);
+    }
+
+    /* Timeline Canvas */
+    .timeline-canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      background: #0b1120;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    #timeline-canvas {
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .timeline-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Filters & Search Toolbar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #1e293b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .filter-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #0f172a;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    .search-input {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: #fff;
+      font-size: 12px;
+      width: 200px;
+    }
+
+    /* Three-Column Note Cards */
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: #1e293b;
+      border-radius: var(--radius);
+      border: 1px dashed var(--border-color);
+      line-height: 1.6;
+    }
+
+    .card-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 240px 1.2fr 1.3fr;
+      gap: 16px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-item:hover {
+      background: var(--bg-card-hover);
+      border-color: #475569;
+    }
+
+    @media (max-width: 900px) {
+      .card-item {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Col 1: Photo & Timestamp */
+    .col-media {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slide-thumb {
+      width: 100%;
+      height: 150px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      cursor: zoom-in;
+    }
+
+    .slide-thumb-empty {
+      width: 100%;
+      height: 150px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px dashed var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .meta-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .time-badge {
+      background: #0284c7;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    /* Col 2: Notes & Ollama Summary */
+    .col-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .note-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      width: fit-content;
+    }
+
+    .tag-conclusion-badge { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid #ec4899; }
+    .tag-case-badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+    .tag-chart-badge { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .tag-quote-badge { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid #eab308; }
+    .tag-general-badge { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #64748b; }
+
+    .user-note-text {
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #f1f5f9;
+      background: #0f172a;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .ollama-summary-box {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .ollama-header {
+      color: #c4b5fd;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ollama-points {
+      padding-left: 18px;
+      color: #e2e8f0;
+      line-height: 1.4;
+    }
+
+    .keywords-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .keyword-pill {
+      font-size: 11px;
+      background: #0f172a;
+      color: #a78bfa;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid #4c1d95;
+    }
+
+    /* Col 3: Transcript 90s Window */
+    .col-transcript {
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .transcript-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 6px;
+    }
+
+    .transcript-body {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      max-height: 150px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    mark.highlight-tag {
+      background-color: var(--highlight-yellow);
+      color: #0f172a;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+    }
+
+    .card-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 6px;
+    }
+
+    /* Modals & Drawers */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #182234;
+    }
+
+    .markdown-preview {
+      width: 100%;
+      height: 300px;
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .lightbox-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 8px;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0284c7;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Pipeline Step Diagram */
+    .pipeline-step {
+      display: flex;
+      gap: 12px;
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+    }
+    .pipeline-num {
+      width: 28px;
+      height: 28px;
+      background: #0284c7;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">速</div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="brand-title">講座重點戰情室</span>
+          <span class="brand-badge">離線錄音 ✕ 繁中辨識</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">無網路教室原生錄音 ✕ 投影片抓拍 ✕ 語氣詞自動高亮</div>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <button class="btn btn-sm" onclick="openModal('tech-modal')" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+        💡 技術原理：錄音如何變繁中文字？
+      </button>
+      <div id="offline-badge" class="offline-indicator">
+        <span style="font-size: 14px;">●</span>
+        <span id="offline-status-text">無網路環境可直接錄音存檔</span>
+      </div>
+      <button class="btn btn-sm" onclick="openTranscriptModal()">
+        📂 匯入已轉好逐字稿 (.json/.srt)
+      </button>
+      <button class="btn btn-sm" onclick="openSyncModal()">
+        ☁️ 雲端同步 (Google Sheets)
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openExportModal()">
+        📋 匯出精華素材包 (.md)
+      </button>
+    </div>
+  </header>
+
+  <div class="app-container">
+
+    <!-- Top Banner: Lecture Meta + Audio Recording Center -->
+    <div class="lecture-header-card">
+      <div class="lecture-meta-inputs">
+        <div class="meta-input-group">
+          <label>講座標題</label>
+          <input type="text" id="lecture-title-input" placeholder="例如：AI 商業化落地與產品踩坑實錄" value="台灣 AI 商業化落地與產品架構實戰踩坑記" onchange="saveLectureMeta()">
+        </div>
+        <div class="meta-input-group">
+          <label>講師名稱 / 單位</label>
+          <input type="text" id="lecturer-input" placeholder="例如：業界資深產品總監 林志宏" value="業界資深產品總監 林志宏" onchange="saveLectureMeta()">
+        </div>
+        <button class="btn btn-sm" onclick="loadDemoSampleData()" title="載入預設繁中逐字稿與筆記範例" style="margin-top: 18px;">
+          載入範例資料體驗
+        </button>
+      </div>
+
+      <!-- 🎙️ 課堂全程錄音中心 (Audio Recording Center) -->
+      <div class="audio-recording-center">
+        <div class="recording-top-row">
+          <div class="rec-badge">
+            <div class="rec-dot" id="rec-status-dot"></div>
+            <span id="rec-status-text">麥克風待命中</span>
+          </div>
+          <div class="rec-timer" id="recording-timer">00:00:00</div>
+        </div>
+
+        <!-- Live Audio VU Meter (收音動態條) -->
+        <div class="vu-meter-container" title="即時麥克風收音音量感應">
+          <div id="vu-meter-bar"></div>
+        </div>
+
+        <!-- Recording Action Buttons -->
+        <div class="recording-buttons">
+          <button class="btn btn-danger btn-sm" id="rec-start-btn" onclick="startAudioRecording()" style="flex: 1.2;">
+            🔴 開始課堂全程錄音
+          </button>
+          <button class="btn btn-sm" id="rec-stop-btn" onclick="stopAudioRecording()" style="flex: 1;" disabled>
+            ⏹️ 結束錄音
+          </button>
+          <button class="btn btn-sm" id="rec-download-btn" onclick="downloadRecordedAudio()" style="display: none;">
+            📥 下載音檔 (.wav)
+          </button>
+        </div>
+
+        <!-- Audio Player & Instant Transcribe Trigger -->
+        <div id="recorded-audio-playback-box">
+          <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>課堂錄音檔已就緒 (大小約 <span id="audio-filesize-text">0 KB</span>)</span>
+            <span style="color: #38bdf8; cursor: pointer;" onclick="downloadRecordedAudio()">下載備份</span>
+          </div>
+          <audio id="recorded-audio-element" controls></audio>
+          <button class="btn btn-primary btn-sm" id="instant-transcribe-btn" onclick="sendAudioToLocalWhisper()" style="margin-top: 4px; width: 100%;">
+            ⚡ 傳送至本地 Whisper 轉為繁中逐字稿
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="main-grid">
+
+      <!-- Left Panel: Fast Camera Snapshot & Instant Note Taking -->
+      <div class="capture-panel">
+        <div class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          現場即時抓拍與筆記打點
+        </div>
+
+        <!-- Camera & Drag-drop Section -->
+        <div class="camera-container" id="camera-drop-area">
+          <video id="webcam-video" autoplay playsinline></video>
+          <img id="camera-preview-img" alt="投影片預覽">
+          <div class="camera-placeholder" id="camera-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <div>點擊下方啟動筆電鏡頭拍投影片<br>或拖曳手機拍攝照片至此</div>
+          </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="camera-actions">
+          <button class="btn btn-sm" id="camera-power-btn" onclick="toggleCamera()" style="flex: 1;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span id="cam-btn-text">開鏡頭</span>
+          </button>
+          <button class="btn btn-sm btn-primary" id="snap-btn" onclick="takeSnapshot()" style="flex: 1.2;" disabled>
+            📸 拍下投影片
+          </button>
+          <button class="btn btn-sm" onclick="clearPreviewPhoto()" id="clear-photo-btn" style="display: none;">
+            清除
+          </button>
+        </div>
+
+        <!-- Local Image Upload Alternative -->
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+          點此上傳電腦或手機照片 (自動前端壓縮)
+          <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Tags Selection -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">分類標籤 (可點選切換)</div>
+          <div class="tag-selector" id="tag-selector">
+            <span class="tag-chip active" data-tag="🌟 講者金句">🌟 講者金句</span>
+            <span class="tag-chip" data-tag="🎯 核心結論">🎯 核心結論</span>
+            <span class="tag-chip" data-tag="📊 產業案例">📊 產業案例</span>
+            <span class="tag-chip" data-tag="📸 關鍵投影片">📸 關鍵投影片</span>
+            <span class="tag-chip" data-tag="⚠️ 踩坑經驗">⚠️ 踩坑經驗</span>
+            <span class="tag-chip" data-tag="💡 個人反思">💡 個人反思</span>
+          </div>
+        </div>
+
+        <!-- User Note Input -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">個人當下記錄 / 備註</div>
+          <textarea id="quick-note-input" class="note-textarea" placeholder="輸入講師提到的關鍵數字、洞察或心得（按 Command+Enter 快速儲存）..."></textarea>
+        </div>
+
+        <!-- Add Note Button -->
+        <button class="btn btn-primary" onclick="addCurrentNote()" style="padding: 12px; font-size: 14px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          打點記錄（自動綁定前後 45 秒逐字稿）
+        </button>
+
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+          💡 <strong>前後 90 秒時間窗機制：</strong>打點時將自動比對講者在 <code>[T-45s ~ T+45s]</code> 的繁中逐字稿，並自動高亮語氣詞。
+        </div>
+      </div>
+
+      <!-- Right Panel: Highlight War Room Dashboard -->
+      <div class="dashboard-panel">
+
+        <!-- Dry Goods Timeline & Density Chart -->
+        <div class="war-room-card">
+          <div class="timeline-header">
+            <div class="timeline-title-group">
+              <span style="font-size: 16px; font-weight: 700;">📈 講座乾貨熱區時間軸 (Highlight Density Timeline)</span>
+              <span style="font-size: 11px; color: var(--text-muted);">點擊柱狀熱點可直接跳轉卡片</span>
+            </div>
+            <div class="stats-pills">
+              <div class="pill">筆記打點：<span class="pill-val" id="stat-total-notes">0</span></div>
+              <div class="pill">投影片：<span class="pill-val" id="stat-total-photos">0</span></div>
+              <div class="pill">語氣詞高亮：<span class="pill-val" id="stat-total-highlights">0</span></div>
+            </div>
+          </div>
+
+          <!-- Canvas Interactive Timeline -->
+          <div class="timeline-canvas-wrapper">
+            <canvas id="timeline-canvas"></canvas>
+          </div>
+          <div class="timeline-legend">
+            <div class="legend-item"><div class="legend-dot" style="background: #38bdf8;"></div> 逐字稿重點語氣詞波峰</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #facc15;"></div> 拍照 / 重點筆記錨點</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #ef4444;"></div> 目前錄音/課堂進度</div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar">
+          <div class="filter-tags" id="filter-container">
+            <button class="filter-btn active" data-filter="ALL" onclick="setFilter('ALL')">全部筆記</button>
+            <button class="filter-btn" data-filter="🎯 核心結論" onclick="setFilter('🎯 核心結論')">🎯 核心結論</button>
+            <button class="filter-btn" data-filter="📊 產業案例" onclick="setFilter('📊 產業案例')">📊 產業案例</button>
+            <button class="filter-btn" data-filter="🌟 講者金句" onclick="setFilter('🌟 講者金句')">🌟 講者金句</button>
+            <button class="filter-btn" data-filter="PHOTO_ONLY" onclick="setFilter('PHOTO_ONLY')">📸 僅看有照片</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="search-input" class="search-input" placeholder="搜尋筆記或逐字稿關鍵字..." oninput="handleSearch(event)">
+            <button class="btn btn-sm" onclick="reAnchorAllNotes()" title="手動重新以目前逐字稿比對所有卡片前後 45 秒">
+              🔄 重新關聯時間窗
+            </button>
+          </div>
+        </div>
+
+        <!-- Three-Column Comparison Cards List -->
+        <div class="notes-list" id="notes-container">
+          <div class="empty-state">
+            目前尚無筆記記錄。請在右上角點擊「🔴 開始課堂全程錄音」，並在左側拍下投影片或點選「打點記錄」！<br>
+            亦可點擊上方「載入範例資料體驗」快速查看完整版面。
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 技術解密（錄音如何變繁中文字） -->
+  <div class="modal-overlay" id="tech-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>💡 技術解密：在無網路教室，錄音如何變成繁體中文逐字稿？</span>
+        <button class="btn btn-sm" onclick="closeModal('tech-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          在沒有 Wi-Fi 的教室裡，瀏覽器內建的語音辨識（Web Speech API）因為必須連線至 Google 雲端伺服器而無法運作。因此，本系統透過筆電本地端的 AI 聲學模型與訊號處理管線，完全不需消耗網路流量：
+        </p>
+
+        <div class="pipeline-step">
+          <div class="pipeline-num">1</div>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">無網音訊捕捉 (16,000Hz 採樣率)</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.5;">
+              當您在網頁點選「🔴 開始課堂錄音」時，瀏覽器透過本地 <code>AudioContext</code> 以 16kHz 單聲道採樣講者聲音，並封裝成標準 PCM WAV 格式。
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="pipeline-num">2</div>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">聲學特徵轉化 (梅爾頻譜圖 Log-Mel Spectrogram)</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.5;">
+              本地 <code>faster-whisper</code> 將連續的聲音波形切分成每 30 秒一個區塊，轉換成 80 個聲學頻道的梅爾頻譜圖，將聲波視覺化為神經網路可理解的二維矩陣。
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="pipeline-num">3</div>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">Transformer 神經解碼 ＋ 台灣繁中 Prompt 導引</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.5;">
+              Whisper Decoder 自注意力機制逐字解碼。透過在啟動時注入指定提示詞：<br>
+              <code style="color: #facc15; font-size: 11px;">"以下是台灣業界講師的繁體中文商業講座，包含商業實務、架構設計與踩坑案例。"</code><br>
+              徹底強制模型輸出符合台灣習慣的繁體中文與專有名詞，避免簡體字或對岸用語。
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="pipeline-num">4</div>
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">語氣詞正則標記 ＋ 前後 45 秒時間窗鎖定</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.5;">
+              當轉出文字時，正則表達式快速比對「重點是、關鍵在於、踩過的坑、看這張圖」等訊號，自動標黃底並與您當下拍的投影片對照綁定！
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('tech-modal')">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 逐字稿檔案載入 / WebSocket -->
+  <div class="modal-overlay" id="transcript-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>離線逐字稿載入與串流設定</span>
+        <button class="btn btn-sm" onclick="closeModal('transcript-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+          可在課前/課後匯入由 <code>offline_transcriber.py</code> 產生的結構化 JSON 檔案、Buzz 匯出的 <code>.srt</code> 字幕檔。
+        </p>
+
+        <div style="background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">檔案匯入 (.json 或 .srt)</div>
+          <input type="file" id="transcript-file-input" accept=".json,.srt" onchange="handleTranscriptFileUpload(event)">
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 12px; font-weight: 600;">已載入之逐字稿句段 (<span id="transcript-count">0</span> 段)</span>
+            <button class="btn btn-sm" onclick="clearAllTranscripts()">清除全部逐字稿</button>
+          </div>
+          <div id="transcript-preview-list" style="max-height: 160px; overflow-y: auto; background: #0f172a; border-radius: 8px; border: 1px solid var(--border-color); padding: 8px; font-size: 12px; font-family: monospace;">
+            尚無逐字稿資料。
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('transcript-modal')">完成並套用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Google Apps Script Cloud Sync -->
+  <div class="modal-overlay" id="sync-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>課後雲端同步 (Google 試算表與 Drive)</span>
+        <button class="btn btn-sm" onclick="closeModal('sync-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+          走出無網路教室後，只要連上 Wi-Fi 或手機熱點，即可將本地 IndexedDB 內的投影片與重點卡片「一鍵同步至 Google 試算表」。後端 Google Apps Script 會自動將 Base64 照片存進 Google Drive 並產生 <code>=IMAGE(...)</code> 預覽公式！
+        </p>
+
+        <div class="meta-input-group" style="width: 100%;">
+          <label>Google Apps Script Web App URL (POST Endpoint)</label>
+          <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" onchange="saveGasUrl()">
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-success" onclick="syncToGoogleSheets()" style="flex: 1;" id="sync-trigger-btn">
+            🚀 開始同步至 Google 試算表
+          </button>
+          <button class="btn" onclick="testGasConnection()">測試連線</button>
+        </div>
+
+        <div id="sync-progress-box" style="display: none; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;" id="sync-progress-text">同步進度：準備中...</div>
+          <div style="background: #334155; height: 6px; border-radius: 3px; overflow: hidden;">
+            <div id="sync-progress-bar" style="background: #38bdf8; width: 0%; height: 100%; transition: width 0.3s;"></div>
+          </div>
+        </div>
+
+        <!-- Local Backup & Restore -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 6px;">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">離線資料安心備份 (JSON)</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm" onclick="exportBackupJson()">📥 下載 IndexedDB 完整備份檔</button>
+            <button class="btn btn-sm" onclick="document.getElementById('restore-file-input').click()">📤 匯入備份還原</button>
+            <input type="file" id="restore-file-input" accept=".json" style="display: none;" onchange="importBackupJson(event)">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('sync-modal')">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Markdown High-Purity Export -->
+  <div class="modal-overlay" id="export-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>一鍵匯出高純度重點素材包 (Markdown)</span>
+        <button class="btn btn-sm" onclick="closeModal('export-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+          系統已將口語贅字去除，將精選的投影片時間點、個人備註與前後 90 秒講者原話組合為結構化 Markdown。可直接複製後餵給 Claude、ChatGPT、Gemini 或自己手寫心得！
+        </p>
+        <textarea id="markdown-export-text" class="markdown-preview" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="copyMarkdownToClipboard()">📋 複製到剪貼簿</button>
+        <button class="btn btn-sm" onclick="downloadMarkdownFile()">💾 下載為 .md 檔案</button>
+        <button class="btn" onclick="closeModal('export-modal')">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Lightbox Image Viewer -->
+  <div class="modal-overlay" id="lightbox-modal" onclick="closeModal('lightbox-modal')">
+    <img id="lightbox-img" class="lightbox-img" src="" alt="放大投影片">
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">
+    <span id="toast-icon">✓</span>
+    <span id="toast-msg">操作成功</span>
+  </div>
+
+  <script>
+    /* ==========================================================
+       1. IndexedDB 離線資料庫管理層 (LectureRecordDB)
+       ========================================================== */
+    const DB_NAME = 'LectureRecordDB';
+    const DB_VERSION = 1;
+    let dbInstance = null;
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('notes')) {
+            const noteStore = db.createObjectStore('notes', { keyPath: 'id' });
+            noteStore.createIndex('timeSec', 'timeSec', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('transcripts')) {
+            const trStore = db.createObjectStore('transcripts', { keyPath: 'id', autoIncrement: true });
+            trStore.createIndex('start_sec', 'start_sec', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('metadata')) {
+            db.createObjectStore('metadata', { keyPath: 'key' });
+          }
+        };
+        req.onsuccess = (e) => {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbSaveNote(note) {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['notes'], 'readwrite');
+        tx.objectStore('notes').put(note);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbGetAllNotes() {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['notes'], 'readonly');
+        const req = tx.objectStore('notes').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbDeleteNote(id) {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['notes'], 'readwrite');
+        tx.objectStore('notes').delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbSaveTranscriptsBatch(transcripts) {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['transcripts'], 'readwrite');
+        const store = tx.objectStore('transcripts');
+        transcripts.forEach(item => store.put(item));
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbGetAllTranscripts() {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['transcripts'], 'readonly');
+        const req = tx.objectStore('transcripts').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    async function dbClearTranscripts() {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(['transcripts'], 'readwrite');
+        tx.objectStore('transcripts').clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+      });
+    }
+
+    /* ==========================================================
+       2. 台灣業界講師重點語氣詞 Regex 偵測器
+       ========================================================== */
+    const HIGHLIGHT_REGEX_PATTERNS = {
+      conclusion: /(重點是|關鍵在於|最重要的一點|總結來說|一句話講完|核心邏輯|本質上|結論是)/g,
+      cases: /(舉個例子|實際案例|我們當時|踩過的坑|血淚教訓|業界現在|商業模式|痛點|血淚)/g,
+      charts: /(看這張圖|投影片上|這個數據|右上角|左邊這欄|架構圖|趨勢|曲線)/g
+    };
+
+    function highlightDiscourseMarkers(rawText) {
+      if (!rawText) return '';
+      let text = escapeHtml(rawText);
+      text = text.replace(HIGHLIGHT_REGEX_PATTERNS.conclusion, '<mark class="highlight-tag" title="核心結論">$1</mark>');
+      text = text.replace(HIGHLIGHT_REGEX_PATTERNS.cases, '<mark class="highlight-tag" title="實務案例">$1</mark>');
+      text = text.replace(HIGHLIGHT_REGEX_PATTERNS.charts, '<mark class="highlight-tag" title="圖表解析">$1</mark>');
+      return text;
+    }
+
+    function detectTagsFromText(text) {
+      const tags = [];
+      if (HIGHLIGHT_REGEX_PATTERNS.conclusion.test(text)) tags.push('🎯 核心結論');
+      if (HIGHLIGHT_REGEX_PATTERNS.cases.test(text)) tags.push('📊 產業案例');
+      if (HIGHLIGHT_REGEX_PATTERNS.charts.test(text)) tags.push('📸 關鍵投影片');
+      return tags;
+    }
+
+    function escapeHtml(string) {
+      const entityMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+    }
+
+    /* ==========================================================
+       3. 🎙️ 課堂全程原生音訊錄製模組 (MediaRecorder & AudioContext)
+       ========================================================== */
+    let audioStream = null;
+    let mediaRecorder = null;
+    let recordedAudioChunks = [];
+    let audioBlob = null;
+    let audioContext = null;
+    let analyserNode = null;
+    let vuMeterInterval = null;
+    let isRecording = false;
+    let recordingTimerSeconds = 0;
+    let recordingTimerInterval = null;
+
+    function formatTime(totalSec) {
+      const hrs = Math.floor(totalSec / 3600).toString().padStart(2, '0');
+      const mins = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+      const secs = Math.floor(totalSec % 60).toString().padStart(2, '0');
+      return `${hrs}:${mins}:${secs}`;
+    }
+
+    async function startAudioRecording() {
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 16000
+          }
+        });
+
+        // 建立音訊分析節點 (VU Meter)
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(audioStream);
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 256;
+        source.connect(analyserNode);
+
+        // 支援最佳音訊格式
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+        }
+
+        mediaRecorder = mimeType ? new MediaRecorder(audioStream, { mimeType }) : new MediaRecorder(audioStream);
+        recordedAudioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedAudioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          audioBlob = new Blob(recordedAudioChunks, { type: mediaRecorder.mimeType || 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audioElement = document.getElementById('recorded-audio-element');
+          audioElement.src = audioUrl;
+          document.getElementById('recorded-audio-playback-box').style.display = 'flex';
+          document.getElementById('rec-download-btn').style.display = 'inline-flex';
+          const sizeKb = Math.round(audioBlob.size / 1024);
+          document.getElementById('audio-filesize-text').innerText = `${sizeKb} KB`;
+        };
+
+        mediaRecorder.start(1000); // 每秒觸發一次 chunk
+        isRecording = true;
+
+        // UI 狀態更新
+        document.getElementById('rec-status-dot').className = 'rec-dot pulsing';
+        document.getElementById('rec-status-text').innerText = '🔴 課堂錄音收音中...';
+        document.getElementById('rec-start-btn').disabled = true;
+        document.getElementById('rec-stop-btn').disabled = false;
+
+        // 啟動收音動態條
+        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        const vuBar = document.getElementById('vu-meter-bar');
+        vuMeterInterval = setInterval(() => {
+          analyserNode.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = sum / dataArray.length;
+          const percentage = Math.min(100, Math.round((avg / 128) * 100));
+          vuBar.style.width = `${percentage}%`;
+        }, 80);
+
+        // 啟動錄音計時器
+        recordingTimerSeconds = 0;
+        document.getElementById('recording-timer').innerText = '00:00:00';
+        recordingTimerInterval = setInterval(() => {
+          recordingTimerSeconds++;
+          document.getElementById('recording-timer').innerText = formatTime(recordingTimerSeconds);
+          renderTimelineChart();
+        }, 1000);
+
+        showToast('已開始課堂全程錄音！麥克風感應正常');
+      } catch (err) {
+        alert('無法啟動麥克風錄音：' + err.message + '\n請確認瀏覽器已允許麥克風權限！');
+      }
+    }
+
+    function stopAudioRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      clearInterval(vuMeterInterval);
+      clearInterval(recordingTimerInterval);
+      document.getElementById('vu-meter-bar').style.width = '0%';
+
+      document.getElementById('rec-status-dot').className = 'rec-dot';
+      document.getElementById('rec-status-text').innerText = '⏹️ 錄音已結束（可試聽或送轉錄）';
+      document.getElementById('rec-start-btn').disabled = false;
+      document.getElementById('rec-stop-btn').disabled = true;
+
+      showToast('課堂錄音結束！可直接於下方播放試聽或點擊轉錄');
+    }
+
+    function downloadRecordedAudio() {
+      if (!audioBlob) {
+        alert('目前尚未錄製任何音檔');
+        return;
+      }
+      const title = document.getElementById('lecture-title-input').value || '課堂錄音';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(audioBlob);
+      a.download = `${title}_${Date.now()}.wav`;
+      a.click();
+      showToast('錄音檔下載完成！');
+    }
+
+    /* ==========================================================
+       4. ⚡ 一鍵送往本地 Faster-Whisper 離線轉錄
+       ========================================================== */
+    async function sendAudioToLocalWhisper() {
+      if (!audioBlob) {
+        alert('請先進行課堂錄音，或結束錄音後再點選轉錄！');
+        return;
+      }
+
+      const btn = document.getElementById('instant-transcribe-btn');
+      btn.disabled = true;
+      btn.innerText = '⏳ 正在以本地 Faster-Whisper 神經網路離線轉錄中...';
+      showToast('已將音檔傳送至本地 Whisper 模型進行繁中解碼...');
+
+      try {
+        const res = await fetch('http://127.0.0.1:8765/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': audioBlob.type || 'audio/wav' },
+          body: audioBlob
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          loadedTranscripts = data.transcripts || [];
+          await dbSaveTranscriptsBatch(loadedTranscripts);
+          updateTranscriptUi();
+          await reAnchorAllNotes();
+          showToast(`轉錄成功！共產生 ${loadedTranscripts.length} 句繁中逐字稿，已自動綁定投影片！`);
+        } else if (data.error_code === 'NO_WHISPER') {
+          alert('【提示】\n' + data.message);
+        } else {
+          alert('轉錄回傳錯誤：' + (data.message || JSON.stringify(data)));
+        }
+      } catch (err) {
+        alert('無法連線至本地轉錄服務 (http://127.0.0.1:8765/api/transcribe)。\n\n' +
+              '💡 解決方式：\n' +
+              '請在終端機打開並執行：\n' +
+              'python3 offline_transcriber.py\n\n' +
+              '執行後即可隨時點擊此按鈕，享受一秒將音檔轉為逐字稿的體驗！');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ 傳送至本地 Whisper 轉為繁中逐字稿';
+      }
+    }
+
+    /* ==========================================================
+       5. 相機、拍照與前端 Canvas 圖片壓縮
+       ========================================================== */
+    let mediaCameraStream = null;
+    let currentPhotoBase64 = '';
+
+    async function toggleCamera() {
+      const video = document.getElementById('webcam-video');
+      const placeholder = document.getElementById('camera-placeholder');
+      const btnText = document.getElementById('cam-btn-text');
+      const snapBtn = document.getElementById('snap-btn');
+
+      if (mediaCameraStream) {
+        mediaCameraStream.getTracks().forEach(track => track.stop());
+        mediaCameraStream = null;
+        video.srcObject = null;
+        video.style.display = 'none';
+        if (!currentPhotoBase64) placeholder.style.display = 'flex';
+        btnText.innerText = '開鏡頭';
+        snapBtn.disabled = true;
+      } else {
+        try {
+          mediaCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 } }
+          });
+          video.srcObject = mediaCameraStream;
+          video.style.display = 'block';
+          placeholder.style.display = 'none';
+          document.getElementById('camera-preview-img').style.display = 'none';
+          btnText.innerText = '關鏡頭';
+          snapBtn.disabled = false;
+          showToast('筆電鏡頭已啟動');
+        } catch (err) {
+          alert('無法取得鏡頭權限：' + err.message + '\n您依然可以點選「上傳照片」或直接拖曳圖片！');
+        }
+      }
+    }
+
+    function takeSnapshot() {
+      const video = document.getElementById('webcam-video');
+      if (!mediaCameraStream || !video.videoWidth) {
+        showToast('相機尚未就緒');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 1280;
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, width, height);
+
+      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+
+      const previewImg = document.getElementById('camera-preview-img');
+      previewImg.src = currentPhotoBase64;
+      previewImg.style.display = 'block';
+      video.style.display = 'none';
+      document.getElementById('camera-placeholder').style.display = 'none';
+      document.getElementById('clear-photo-btn').style.display = 'inline-block';
+      showToast('投影片已成功抓拍並壓縮');
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      compressAndLoadImage(file);
+    }
+
+    function compressAndLoadImage(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+
+          const previewImg = document.getElementById('camera-preview-img');
+          previewImg.src = currentPhotoBase64;
+          previewImg.style.display = 'block';
+          document.getElementById('camera-placeholder').style.display = 'none';
+          document.getElementById('clear-photo-btn').style.display = 'inline-block';
+          showToast('本機照片載入並壓縮完成');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPreviewPhoto() {
+      currentPhotoBase64 = '';
+      document.getElementById('camera-preview-img').style.display = 'none';
+      document.getElementById('clear-photo-btn').style.display = 'none';
+      if (!mediaCameraStream) {
+        document.getElementById('camera-placeholder').style.display = 'flex';
+      } else {
+        document.getElementById('webcam-video').style.display = 'block';
+      }
+    }
+
+    const dropArea = document.getElementById('camera-drop-area');
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.style.borderColor = '#38bdf8';
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropArea.style.borderColor = 'var(--border-color)';
+      }, false);
+    });
+    dropArea.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length && files[0].type.startsWith('image/')) {
+        compressAndLoadImage(files[0]);
+      }
+    });
+
+    /* ==========================================================
+       6. 標籤選取器與快捷鍵設定
+       ========================================================== */
+    let selectedTag = '🌟 講者金句';
+    document.getElementById('tag-selector').addEventListener('click', (e) => {
+      if (e.target.classList.contains('tag-chip')) {
+        document.querySelectorAll('#tag-selector .tag-chip').forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        selectedTag = e.target.getAttribute('data-tag');
+      }
+    });
+
+    document.getElementById('quick-note-input').addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        addCurrentNote();
+      }
+    });
+
+    /* ==========================================================
+       7. 前後 45 秒 (共 90 秒) 逐字稿時間窗錨定算法
+       ========================================================== */
+    let loadedTranscripts = [];
+
+    function getTranscriptWindowForTime(timeSec) {
+      if (!loadedTranscripts || loadedTranscripts.length === 0) return '';
+      const windowStart = Math.max(0, timeSec - 45);
+      const windowEnd = timeSec + 45;
+
+      const matchedSegments = loadedTranscripts.filter(seg => {
+        return (seg.end_sec >= windowStart && seg.start_sec <= windowEnd);
+      });
+
+      if (matchedSegments.length === 0) {
+        let closest = loadedTranscripts[0];
+        let minDiff = Math.abs(closest.start_sec - timeSec);
+        loadedTranscripts.forEach(seg => {
+          const diff = Math.abs(seg.start_sec - timeSec);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = seg;
+          }
+        });
+        return closest ? `[接近時間 ${formatTime(closest.start_sec)}] ${closest.text}` : '';
+      }
+
+      return matchedSegments.map(s => `[${formatTime(s.start_sec)}] ${s.text}`).join(' ');
+    }
+
+    /* ==========================================================
+       8. 新增重點筆記卡片 (綁定時間、照片、逐字稿與標籤)
+       ========================================================== */
+    let allNotes = [];
+
+    async function addCurrentNote() {
+      const userNoteText = document.getElementById('quick-note-input').value.trim();
+      if (!userNoteText && !currentPhotoBase64) {
+        alert('請先輸入筆記備註或拍下投影片！');
+        return;
+      }
+
+      const noteTimeSec = recordingTimerSeconds;
+      const noteTimestamp = formatTime(noteTimeSec);
+      const transcriptSnippet = getTranscriptWindowForTime(noteTimeSec);
+
+      let finalTag = selectedTag;
+      if (finalTag === '🌟 講者金句' && transcriptSnippet) {
+        const detected = detectTagsFromText(transcriptSnippet);
+        if (detected.length > 0) finalTag = detected[0];
+      }
+
+      const newNote = {
+        id: 'note_' + Date.now(),
+        lectureTitle: document.getElementById('lecture-title-input').value || '未命名講座',
+        lecturer: document.getElementById('lecturer-input').value || '',
+        timestamp: noteTimestamp,
+        timeSec: noteTimeSec,
+        tag: finalTag,
+        userNote: userNoteText || '（拍照紀錄無補充文字）',
+        transcriptSnippet: transcriptSnippet,
+        summaryPoints: [userNoteText || '投影片紀錄'],
+        keywords: [],
+        photoBase64: currentPhotoBase64
+      };
+
+      await dbSaveNote(newNote);
+      allNotes.unshift(newNote);
+
+      document.getElementById('quick-note-input').value = '';
+      clearPreviewPhoto();
+
+      showToast(`已儲存【${noteTimestamp}】筆記卡片`);
+      renderCards();
+      renderTimelineChart();
+    }
+
+    async function deleteNote(id) {
+      if (confirm('確定要刪除這張筆記卡片嗎？')) {
+        await dbDeleteNote(id);
+        allNotes = allNotes.filter(n => n.id !== id);
+        renderCards();
+        renderTimelineChart();
+        showToast('已刪除筆記卡片');
+      }
+    }
+
+    /* ==========================================================
+       9. 課後重新關聯時間窗 (Re-Anchor)
+       ========================================================== */
+    async function reAnchorAllNotes() {
+      if (loadedTranscripts.length === 0) {
+        alert('請先載入逐字稿檔案或執行轉錄，再執行重新關聯！');
+        return;
+      }
+      let count = 0;
+      for (let note of allNotes) {
+        const matched = getTranscriptWindowForTime(note.timeSec);
+        if (matched) {
+          note.transcriptSnippet = matched;
+          await dbSaveNote(note);
+          count++;
+        }
+      }
+      renderCards();
+      renderTimelineChart();
+      showToast(`已為 ${count} 張卡片成功比對前後 45 秒講者原話！`);
+    }
+
+    /* ==========================================================
+       10. 渲染三欄對照卡片 (Three-Column Comparison)
+       ========================================================== */
+    let currentFilter = 'ALL';
+    let currentSearchQuery = '';
+
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('#filter-container .filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filterType) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      renderCards();
+    }
+
+    function handleSearch(e) {
+      currentSearchQuery = e.target.value.toLowerCase().trim();
+      renderCards();
+    }
+
+    function renderCards() {
+      const container = document.getElementById('notes-container');
+      const filtered = allNotes.filter(item => {
+        if (currentFilter === 'PHOTO_ONLY' && !item.photoBase64) return false;
+        if (currentFilter !== 'ALL' && currentFilter !== 'PHOTO_ONLY' && !item.tag.includes(currentFilter.replace(/[🎯📊🌟]/g, '').trim())) {
+          return false;
+        }
+        if (currentSearchQuery) {
+          const matchNote = item.userNote && item.userNote.toLowerCase().includes(currentSearchQuery);
+          const matchSnippet = item.transcriptSnippet && item.transcriptSnippet.toLowerCase().includes(currentSearchQuery);
+          return matchNote || matchSnippet;
+        }
+        return true;
+      });
+
+      document.getElementById('stat-total-notes').innerText = allNotes.length;
+      document.getElementById('stat-total-photos').innerText = allNotes.filter(n => !!n.photoBase64).length;
+      document.getElementById('stat-total-highlights').innerText = allNotes.filter(n => n.transcriptSnippet && HIGHLIGHT_REGEX_PATTERNS.conclusion.test(n.transcriptSnippet)).length;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            沒有符合篩選條件的筆記。共 ${allNotes.length} 則筆記記錄中。
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        let tagClass = 'tag-general-badge';
+        if (item.tag.includes('結論')) tagClass = 'tag-conclusion-badge';
+        else if (item.tag.includes('案例') || item.tag.includes('踩坑')) tagClass = 'tag-case-badge';
+        else if (item.tag.includes('投影片') || item.tag.includes('圖表')) tagClass = 'tag-chart-badge';
+        else if (item.tag.includes('金句')) tagClass = 'tag-quote-badge';
+
+        const photoHtml = item.photoBase64 ? `
+          <img src="${item.photoBase64}" class="slide-thumb" alt="投影片" onclick="openLightbox('${item.photoBase64}')">
+        ` : `
+          <div class="slide-thumb-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span style="margin-top: 4px;">純文字重點 (無拍照)</span>
+          </div>
+        `;
+
+        const highlightedTranscript = item.transcriptSnippet ? highlightDiscourseMarkers(item.transcriptSnippet) : '<span style="color: var(--text-muted);">（課堂當下未連動逐字稿，錄音結束後點選「轉為繁中逐字稿」即可自動補齊）</span>';
+
+        let ollamaBlock = '';
+        if (item.summaryPoints && item.summaryPoints.length > 0) {
+          const listHtml = item.summaryPoints.map(p => `<li>${escapeHtml(p)}</li>`).join('');
+          let kwHtml = '';
+          if (item.keywords && item.keywords.length > 0) {
+            kwHtml = `<div class="keywords-row">${item.keywords.map(k => `<span class="keyword-pill">#${escapeHtml(k)}</span>`).join('')}</div>`;
+          }
+          ollamaBlock = `
+            <div class="ollama-summary-box">
+              <div class="ollama-header">✨ 結構化重點萃取 (Bullet Points)</div>
+              <ul class="ollama-points">${listHtml}</ul>
+              ${kwHtml}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="card-item" id="card-${item.id}">
+            <div class="col-media">
+              ${photoHtml}
+              <div class="meta-badge-row">
+                <span class="time-badge">${item.timestamp}</span>
+                <span style="color: var(--text-muted); font-size: 11px;">相對時間 ${item.timeSec}s</span>
+              </div>
+            </div>
+
+            <div class="col-summary">
+              <div>
+                <span class="note-tag ${tagClass}">${item.tag}</span>
+              </div>
+              <div class="user-note-text">
+                ${escapeHtml(item.userNote)}
+              </div>
+              ${ollamaBlock}
+              <div class="card-footer-actions">
+                <label style="font-size: 11px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" class="export-checkbox" value="${item.id}" checked>
+                  納入匯出清單
+                </label>
+                <button class="btn btn-sm" onclick="deleteNote('${item.id}')" style="color: #ef4444; background: transparent; padding: 2px 6px;">
+                  刪除
+                </button>
+              </div>
+            </div>
+
+            <div class="col-transcript">
+              <div class="transcript-header">
+                <span>前後 90 秒講者原話語境 [T-45s ~ T+45s]</span>
+                <button class="btn btn-sm" onclick="copyText('${escapeForJs(item.transcriptSnippet)}')" style="padding: 2px 6px; font-size: 10px;">
+                  複製原話
+                </button>
+              </div>
+              <div class="transcript-body">
+                ${highlightedTranscript}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeForJs(str) {
+      if (!str) return '';
+      return str.replace(/'/g, "\\'").replace(/\n/g, ' ');
+    }
+
+    /* ==========================================================
+       11. 純 Canvas 繪製「乾貨熱區時間軸 (Highlight Density Timeline)」
+       ========================================================== */
+    function renderTimelineChart() {
+      const canvas = document.getElementById('timeline-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      let maxTime = Math.max(600, recordingTimerSeconds + 60);
+      allNotes.forEach(n => { if (n.timeSec > maxTime) maxTime = n.timeSec + 60; });
+      loadedTranscripts.forEach(t => { if (t.end_sec > maxTime) maxTime = t.end_sec + 60; });
+
+      const PADDING_BOTTOM = 25;
+      const PADDING_TOP = 15;
+      const chartHeight = h - PADDING_BOTTOM - PADDING_TOP;
+
+      const stepSec = maxTime > 1800 ? 300 : 120;
+      ctx.strokeStyle = '#1e293b';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+
+      for (let t = 0; t <= maxTime; t += stepSec) {
+        const x = (t / maxTime) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, PADDING_TOP);
+        ctx.lineTo(x, h - PADDING_BOTTOM);
+        ctx.stroke();
+        ctx.fillText(formatTime(t).substring(3), x, h - 8);
+      }
+
+      if (loadedTranscripts.length > 0) {
+        const BINS = 40;
+        const binSec = maxTime / BINS;
+        const counts = new Array(BINS).fill(0);
+
+        loadedTranscripts.forEach(seg => {
+          const mid = (seg.start_sec + seg.end_sec) / 2;
+          const binIdx = Math.min(BINS - 1, Math.floor(mid / binSec));
+          if (seg.is_highlight || HIGHLIGHT_REGEX_PATTERNS.conclusion.test(seg.text)) {
+            counts[binIdx] += 2;
+          } else {
+            counts[binIdx] += 0.5;
+          }
+        });
+
+        const maxDensity = Math.max(3, ...counts);
+        ctx.beginPath();
+        ctx.moveTo(0, h - PADDING_BOTTOM);
+
+        for (let i = 0; i < BINS; i++) {
+          const x = (i / (BINS - 1)) * w;
+          const y = (h - PADDING_BOTTOM) - (counts[i] / maxDensity) * chartHeight;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.lineTo(w, h - PADDING_BOTTOM);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, PADDING_TOP, 0, h - PADDING_BOTTOM);
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0.02)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      allNotes.forEach(note => {
+        const x = (note.timeSec / maxTime) * w;
+        const y = h - PADDING_BOTTOM - 20;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = note.photoBase64 ? '#facc15' : '#10b981';
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.setLineDash([2, 2]);
+        ctx.moveTo(x, y + 5);
+        ctx.lineTo(x, h - PADDING_BOTTOM);
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+
+      if (recordingTimerSeconds > 0) {
+        const curX = (recordingTimerSeconds / maxTime) * w;
+        ctx.beginPath();
+        ctx.moveTo(curX, 5);
+        ctx.lineTo(curX, h - PADDING_BOTTOM);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(curX - 4, 5);
+        ctx.lineTo(curX + 4, 5);
+        ctx.lineTo(curX, 11);
+        ctx.fill();
+      }
+    }
+
+    document.getElementById('timeline-canvas').addEventListener('click', (e) => {
+      const canvas = document.getElementById('timeline-canvas');
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      let maxTime = Math.max(600, recordingTimerSeconds + 60);
+      allNotes.forEach(n => { if (n.timeSec > maxTime) maxTime = n.timeSec + 60; });
+      const clickedSec = (clickX / rect.width) * maxTime;
+
+      let closestNote = null;
+      let minDiff = Infinity;
+      allNotes.forEach(n => {
+        const diff = Math.abs(n.timeSec - clickedSec);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestNote = n;
+        }
+      });
+
+      if (closestNote && minDiff < 120) {
+        const el = document.getElementById('card-' + closestNote.id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.borderColor = '#38bdf8';
+          el.style.boxShadow = '0 0 20px rgba(56, 189, 248, 0.4)';
+          setTimeout(() => {
+            el.style.borderColor = 'var(--border-color)';
+            el.style.boxShadow = 'none';
+          }, 1500);
+        }
+      }
+    });
+
+    /* ==========================================================
+       12. 一鍵匯出高純度重點素材包 (Markdown)
+       ========================================================== */
+    function openExportModal() {
+      const title = document.getElementById('lecture-title-input').value || '業界講座精華筆記';
+      const lecturer = document.getElementById('lecturer-input').value || '未填寫';
+      const now = new Date().toLocaleDateString('zh-TW');
+
+      const checkedBoxes = document.querySelectorAll('.export-checkbox:checked');
+      const checkedIds = new Set(Array.from(checkedBoxes).map(cb => cb.value));
+      const targetNotes = allNotes.filter(n => checkedIds.has(n.id));
+
+      let md = `# 講座重點精華素材包：${title}\n\n`;
+      md += `> **講師**：${lecturer}  \n`;
+      md += `> **匯出日期**：${now}  \n`;
+      md += `> **精華重點收斂**：共收錄 ${targetNotes.length} 則關鍵核心膠囊\n\n`;
+      md += `> 💡 **給大型語言模型 (LLM) 的撰寫指令建議**：  \n`;
+      md += `> *「請扮演專業商業分析師，參考以下結構化筆記卡片與前後 90 秒講者原話，為我組裝出一篇 1500 字、具備洞察、實務案例與行動方針的深度課堂心得報告。」*\n\n`;
+      md += `---\n\n`;
+
+      targetNotes.forEach((n, idx) => {
+        md += `### ${idx + 1}. 【${n.timestamp}】${n.tag}：${n.userNote}\n\n`;
+        if (n.summaryPoints && n.summaryPoints.length > 0) {
+          md += `**📌 提煉重點摘要：**\n`;
+          n.summaryPoints.forEach(p => {
+            md += `- ${p}\n`;
+          });
+          md += `\n`;
+        }
+        if (n.keywords && n.keywords.length > 0) {
+          md += `**🏷️ 關鍵專有名詞：** ${n.keywords.join('、')}\n\n`;
+        }
+        if (n.photoBase64) {
+          md += `**📸 現場投影片**：*(已抓拍該時間點關鍵投影片架構)*\n\n`;
+        }
+        if (n.transcriptSnippet) {
+          md += `**🎙️ 前後 90 秒講者原話精華語境：**\n`;
+          md += `> "${n.transcriptSnippet.replace(/\n/g, ' ')}"\n\n`;
+        }
+        md += `---\n\n`;
+      });
+
+      document.getElementById('markdown-export-text').value = md;
+      openModal('export-modal');
+    }
+
+    function copyMarkdownToClipboard() {
+      const text = document.getElementById('markdown-export-text').value;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已複製高純度 Markdown 重點素材包至剪貼簿！');
+      }).catch(err => {
+        alert('複製失敗，請手動選取複製：' + err);
+      });
+    }
+
+    function downloadMarkdownFile() {
+      const text = document.getElementById('markdown-export-text').value;
+      const title = document.getElementById('lecture-title-input').value || '講座重點素材包';
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}_重點素材包.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Markdown 檔案已成功下載');
+    }
+
+    /* ==========================================================
+       13. 課後雲端同步 (Google Apps Script POST)
+       ========================================================== */
+    function saveGasUrl() {
+      const url = document.getElementById('gas-url-input').value.trim();
+      localStorage.setItem('gas_webhook_url', url);
+    }
+
+    async function syncToGoogleSheets() {
+      const url = document.getElementById('gas-url-input').value.trim();
+      if (!url) {
+        alert('請先輸入 Google Apps Script Web App 的網址！');
+        return;
+      }
+      if (allNotes.length === 0) {
+        alert('目前無任何筆記可同步！');
+        return;
+      }
+
+      const syncBtn = document.getElementById('sync-trigger-btn');
+      const progressBox = document.getElementById('sync-progress-box');
+      const progressBar = document.getElementById('sync-progress-bar');
+      const progressText = document.getElementById('sync-progress-text');
+
+      syncBtn.disabled = true;
+      progressBox.style.display = 'block';
+      progressBar.style.width = '30%';
+      progressText.innerText = `正在打包 ${allNotes.length} 則筆記（含 Base64 投影片照片）...`;
+
+      const payload = {
+        lectureTitle: document.getElementById('lecture-title-input').value || '講座課筆記',
+        lecturer: document.getElementById('lecturer-input').value || '',
+        notes: allNotes.map(n => ({
+          id: n.id,
+          lectureTitle: n.lectureTitle,
+          timestamp: n.timestamp,
+          tag: n.tag,
+          transcript: n.transcriptSnippet,
+          userNote: n.userNote,
+          photoBase64: n.photoBase64 || ''
+        }))
+      };
+
+      try {
+        progressBar.style.width = '60%';
+        progressText.innerText = '正在傳送至 Google Apps Script 後端並建立 Drive 圖庫...';
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        progressBar.style.width = '100%';
+        if (result.status === 'success') {
+          progressText.innerText = `✅ 同步成功！共上傳 ${result.count} 筆記錄至 Google 試算表。`;
+          showToast('成功同步至 Google 試算表！');
+        } else {
+          progressText.innerText = `⚠️ 回傳錯誤：${result.message}`;
+          alert('同步發生錯誤：' + result.message);
+        }
+      } catch (err) {
+        progressBar.style.width = '100%';
+        progressText.innerText = `❌ 同步連線失敗：${err.message}`;
+        alert('無法連線至 Google Apps Script：\n' + err.message + '\n請確認您已連上網路，且 GAS 已部署為「所有人皆可存取」的 Web 應用程式。');
+      } finally {
+        syncBtn.disabled = false;
+      }
+    }
+
+    async function testGasConnection() {
+      const url = document.getElementById('gas-url-input').value.trim();
+      if (!url) {
+        alert('請先輸入 Google Apps Script 網址');
+        return;
+      }
+      try {
+        showToast('正在測試連線...');
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert('連線成功！Google 試算表後端運作正常，目前表內有 ' + (data.data ? data.data.length : 0) + ' 筆舊資料。');
+        } else {
+          alert('連線回傳異常：' + JSON.stringify(data));
+        }
+      } catch (err) {
+        alert('連線測試失敗：' + err.message);
+      }
+    }
+
+    /* ==========================================================
+       14. 離線資料備份與還原 (JSON Backup)
+       ========================================================== */
+    function exportBackupJson() {
+      const backupData = {
+        metadata: {
+          title: document.getElementById('lecture-title-input').value,
+          lecturer: document.getElementById('lecturer-input').value,
+          timerSeconds: recordingTimerSeconds
+        },
+        notes: allNotes,
+        transcripts: loadedTranscripts
+      };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `講座備份_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('IndexedDB 本地備份已下載');
+    }
+
+    function importBackupJson(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.notes) {
+            allNotes = data.notes;
+            for (let n of allNotes) await dbSaveNote(n);
+          }
+          if (data.transcripts) {
+            loadedTranscripts = data.transcripts;
+            await dbSaveTranscriptsBatch(loadedTranscripts);
+          }
+          if (data.metadata) {
+            if (data.metadata.title) document.getElementById('lecture-title-input').value = data.metadata.title;
+            if (data.metadata.lecturer) document.getElementById('lecturer-input').value = data.metadata.lecturer;
+          }
+          renderCards();
+          renderTimelineChart();
+          showToast('已成功還原備份資料！');
+        } catch (err) {
+          alert('備份檔解析失敗：' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /* ==========================================================
+       15. 逐字稿檔案載入與解析 (.json / .srt)
+       ========================================================== */
+    function handleTranscriptFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const content = event.target.result;
+        try {
+          if (file.name.endsWith('.json')) {
+            const parsed = JSON.parse(content);
+            const items = Array.isArray(parsed) ? parsed : (parsed.transcripts || []);
+            loadedTranscripts = items;
+          } else if (file.name.endsWith('.srt')) {
+            loadedTranscripts = parseSrt(content);
+          }
+          await dbSaveTranscriptsBatch(loadedTranscripts);
+          updateTranscriptUi();
+          showToast(`已成功載入 ${loadedTranscripts.length} 段逐字稿！`);
+        } catch (err) {
+          alert('逐字稿解析失敗：' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseSrt(srtContent) {
+      const segments = [];
+      const blocks = srtContent.replace(/\r\n/g, '\n').split('\n\n');
+      blocks.forEach(block => {
+        const lines = block.trim().split('\n');
+        if (lines.length >= 3) {
+          const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2})[,\.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,\.](\d{3})/);
+          if (timeMatch) {
+            const startSec = parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]) + parseInt(timeMatch[4]) / 1000;
+            const endSec = parseInt(timeMatch[5]) * 3600 + parseInt(timeMatch[6]) * 60 + parseInt(timeMatch[7]) + parseInt(timeMatch[8]) / 1000;
+            const text = lines.slice(2).join(' ');
+            segments.push({
+              start_sec: Math.round(startSec * 10) / 10,
+              end_sec: Math.round(endSec * 10) / 10,
+              text: text,
+              is_highlight: HIGHLIGHT_REGEX_PATTERNS.conclusion.test(text)
+            });
+          }
+        }
+      });
+      return segments;
+    }
+
+    function updateTranscriptUi() {
+      document.getElementById('transcript-count').innerText = loadedTranscripts.length;
+      const preview = document.getElementById('transcript-preview-list');
+      if (loadedTranscripts.length === 0) {
+        preview.innerHTML = '尚無逐字稿資料。';
+      } else {
+        preview.innerHTML = loadedTranscripts.slice(0, 30).map(s => `
+          <div style="margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px;">
+            <span style="color: #38bdf8;">[${formatTime(s.start_sec)}]</span> ${escapeHtml(s.text)}
+          </div>
+        `).join('') + (loadedTranscripts.length > 30 ? '<div style="color: #94a3b8;">...(更多段落已隱藏)</div>' : '');
+      }
+      renderTimelineChart();
+    }
+
+    async function clearAllTranscripts() {
+      if (confirm('確定要清除所有已載入的逐字稿嗎？')) {
+        await dbClearTranscripts();
+        loadedTranscripts = [];
+        updateTranscriptUi();
+        showToast('已清除逐字稿');
+      }
+    }
+
+    /* ==========================================================
+       16. 載入示範資料體驗 (Load Demo Data)
+       ========================================================== */
+    async function loadDemoSampleData() {
+      try {
+        const res = await fetch('demo_sample_data.json');
+        const demo = await res.json();
+        document.getElementById('lecture-title-input').value = demo.lectureTitle;
+        document.getElementById('lecturer-input').value = demo.lecturer;
+        recordingTimerSeconds = 340;
+        document.getElementById('recording-timer').innerText = formatTime(recordingTimerSeconds);
+
+        loadedTranscripts = demo.transcripts || [];
+        allNotes = demo.notes || [];
+
+        for (let n of allNotes) await dbSaveNote(n);
+        await dbSaveTranscriptsBatch(loadedTranscripts);
+
+        updateTranscriptUi();
+        renderCards();
+        renderTimelineChart();
+        showToast('已成功載入示範資料！');
+      } catch (err) {
+        alert('載入示範資料失敗：' + err.message);
+      }
+    }
+
+    /* ==========================================================
+       17. 燈箱、彈窗與輔助函數 (Lightbox & Modals)
+       ========================================================= */
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      openModal('lightbox-modal');
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function openTranscriptModal() { openModal('transcript-modal'); }
+    function openSyncModal() {
+      const savedGas = localStorage.getItem('gas_webhook_url');
+      if (savedGas) document.getElementById('gas-url-input').value = savedGas;
+      openModal('sync-modal');
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已複製講者原話！');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2500);
+    }
+
+    function saveLectureMeta() {
+      localStorage.setItem('lecture_meta_title', document.getElementById('lecture-title-input').value);
+      localStorage.setItem('lecture_meta_lecturer', document.getElementById('lecturer-input').value);
+    }
+
+    window.addEventListener('resize', () => {
+      renderTimelineChart();
+    });
+
+    function updateNetworkStatus() {
+      const badge = document.getElementById('offline-badge');
+      const text = document.getElementById('offline-status-text');
+      if (navigator.onLine) {
+        badge.className = 'offline-indicator';
+        text.innerText = '連網狀態 (可同步至 Google 試算表)';
+      } else {
+        badge.className = 'offline-indicator disconnected';
+        text.innerText = '無網路環境 (錄音與圖文完整存於 IndexedDB)';
+      }
+    }
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    /* ==========================================================
+       18. 系統開機初始化
+       ========================================================== */
+    window.addEventListener('DOMContentLoaded', async () => {
+      await initIndexedDB();
+      updateNetworkStatus();
+
+      const savedTitle = localStorage.getItem('lecture_meta_title');
+      const savedLecturer = localStorage.getItem('lecture_meta_lecturer');
+      if (savedTitle) document.getElementById('lecture-title-input').value = savedTitle;
+      if (savedLecturer) document.getElementById('lecturer-input').value = savedLecturer;
+
+      allNotes = await dbGetAllNotes();
+      loadedTranscripts = await dbGetAllTranscripts();
+
+      if (allNotes.length === 0 && loadedTranscripts.length === 0) {
+        loadDemoSampleData();
+      } else {
+        renderCards();
+        updateTranscriptUi();
+        renderTimelineChart();
+      }
+    });
+  </script>
+</body>
+</html>
